@@ -1,0 +1,236 @@
+---
+title: "Statistics for Data Science Assignment3"
+author: "Navanith Rayavarapu"
+date: "November 19, 2018"
+output:
+  word_document:
+    toc: yes
+  pdf_document:
+    toc: yes
+  html_document:
+    fig_height: 4.5
+    fig_width: 7
+    highlight: tango
+    number_sections: yes
+    theme: readable
+    toc: yes
+---
+
+```{r warning = FALSE, message = FALSE, echo = FALSE}
+# Loading librarires 
+library(tidyverse)
+library(ggpubr)
+library(data.table)
+library(gridExtra)
+library(car)
+library(lmtest)
+```
+
+# Abstract  
+
+The Assignment is about the Analysis of the Blog feedback data set which was downloaded from the [UCI Machine Learning Repository](http://archive.ics.uci.edu/ml/index.php).  There are **281 attributes** in the data set. All the attributes are either real or integer. The last attribute is the target attribute. Each blog post (or observation) was selected such that the post was published 72 hours before a selected base time/date. In the train data The basetimes were in the years 2010 and 2011 whereas the test data set contains the  basetimes in the year 2014.  
+
+
+#Problem Definition  
+
+Each observation in the data belongs to a blog post. Our goal is to predict the number of comments in the upcoming 24 hours (relative to a basetime) for a given blog post.  
+
+#Methodology  
+
+The Analysis of the data can be done by two ways:  
+
+**1. Descriptive Analysis**  
+
+**2. Predictive Analysis**  
+
+
+In Descriptive Analysis we will find the  
+
+* number of blog sources.  
+* distribution of the target variable.  
+* number of blogs posted in each weekday.  
+
+In Predictive Analysis we will  
+
+* fit the  regression line for for the data.  
+* find whether the fit is in homoscedasticity or in heteroscedasticity.  
+* find the performance metrics of the line. 
+* Durbin Watson test to find the auto-correlation of the residuals.  
+
+
+```{r warning = FALSE, message = FALSE, echo = FALSE}
+
+
+filepath <- "F:/Statistics for data analysis/project/"
+
+# Setting working directory
+setwd(filepath)
+```
+
+
+#Results and Discussion  
+
+## Results of Descriptive Analysis  
+
+```{r warning = FALSE, message = FALSE, echo = FALSE}
+train_data <- read.csv("blogData_train.csv")
+test_data <- read.csv( "merged_test.csv")
+test_data <- test_data[,2:282]
+
+train_data <- as.data.frame(train_data)
+test_data <- as.data.frame(test_data)
+
+#cov(train_data[,1:2])
+#var(train_data[,281])
+
+```
+
+```{r warning = FALSE, message = FALSE, echo = FALSE}
+colnames(test_data)[c(1,6,11,16,21)] <- c("AVG_51", "AVG_52", "AVG_53", "AVG_54", "AVG_55")
+colnames(test_data)[c(2,7,12,17,22)] <- c("sd_51", "sd_52", "sd_53", "sd_54", "sd_55")
+colnames(test_data)[c(3,8,13,18,23)] <- c("min_51", "min_52", "min_53", "min_54", "min_55")
+colnames(test_data)[c(4,9,14,19,24)] <- c("max_51", "max_52", "max_53", "max_54", "max_55")
+colnames(test_data)[c(5,10,15,20,25)] <- c("median_51", "median_52", "median_53", "median_54", "median_55")
+colnames(test_data)[c(26,31,36,41,46)] <- c("AVG_56", "AVG_57", "AVG_58", "AVG_59", "AVG_60")
+colnames(test_data)[c(27,32,37,42,47)] <- c("sd_56", "sd_57", "sd_58", "sd_59", "sd_60")
+colnames(test_data)[c(28,33,38,43,48)] <- c("min_56", "min_57", "min_58", "min_59", "min_60")
+colnames(test_data)[c(29,34,39,44,49)] <- c("max_56", "max_57", "max_58", "max_59", "max_60")
+colnames(test_data)[c(30,35,40,45,50)] <- c("median_56", "median_57", "median_58", "median_59", "median_60")
+colnames(test_data)[c(51,52,53,54,55)] <- c("total_num_comnt", "num_comnt_last24hr", "diff_comnt_btw_24and48hr","num_comnt_first_24hr", "diff_52&53")
+colnames(test_data)[c(56,57,58,59,60)] <- c("total_num_link", "num_link_last24hr", "diff_link_btw_24and48hr","num_link_first_24hr", "diff_57&58")
+colnames(test_data)[c(61,62)] <- c("len_time_btw_pubBP&bt", "len_BP")
+colnames(test_data)[c(263,264,265,266,267,268,269)] <- c("Mon_bt", "Tue_bt", "Wed_bt", "Thu_bt", "Fri_bt", "Sat_bt", "Sun_bt")
+colnames(test_data)[c(270,271,272,273,274,275,276)] <- c("Mon_BP", "Tue_BP", "Wed_BP", "Thu_BP", "Fri_BP", "Sat_BP", "Sun_BP")
+colnames(test_data)[c(277)] <- c("num_parent_posts")
+colnames(test_data)[c(278,279,280)] <- c("min_numComnt_parent", "max_numComnt_parent", "Avg_numComnt_parent")
+colnames(test_data)[c(281)] <- c("num_comnt_next24hr")
+colnames(test_data)[63:262] <- colnames(train_data)[63:262]
+#View(test_data)
+#dim(test_data)
+#ggplot(train_data, aes(x = log(total_num_comnt))) + geom_density()
+```
+
+```{r warning = FALSE, message = FALSE, echo = FALSE}
+colnames(train_data)[c(1,6,11,16,21)] <- c("AVG_51", "AVG_52", "AVG_53", "AVG_54", "AVG_55")
+colnames(train_data)[c(2,7,12,17,22)] <- c("sd_51", "sd_52", "sd_53", "sd_54", "sd_55")
+colnames(train_data)[c(3,8,13,18,23)] <- c("min_51", "min_52", "min_53", "min_54", "min_55")
+colnames(train_data)[c(4,9,14,19,24)] <- c("max_51", "max_52", "max_53", "max_54", "max_55")
+colnames(train_data)[c(5,10,15,20,25)] <- c("median_51", "median_52", "median_53", "median_54", "median_55")
+colnames(train_data)[c(26,31,36,41,46)] <- c("AVG_56", "AVG_57", "AVG_58", "AVG_59", "AVG_60")
+colnames(train_data)[c(27,32,37,42,47)] <- c("sd_56", "sd_57", "sd_58", "sd_59", "sd_60")
+colnames(train_data)[c(28,33,38,43,48)] <- c("min_56", "min_57", "min_58", "min_59", "min_60")
+colnames(train_data)[c(29,34,39,44,49)] <- c("max_56", "max_57", "max_58", "max_59", "max_60")
+colnames(train_data)[c(30,35,40,45,50)] <- c("median_56", "median_57", "median_58", "median_59", "median_60")
+colnames(train_data)[c(51,52,53,54,55)] <- c("total_num_comnt", "num_comnt_last24hr", "diff_comnt_btw_24and48hr","num_comnt_first_24hr", "diff_52&53")
+colnames(train_data)[c(56,57,58,59,60)] <- c("total_num_link", "num_link_last24hr", "diff_link_btw_24and48hr","num_link_first_24hr", "diff_57&58")
+colnames(train_data)[c(61,62)] <- c("len_time_btw_pubBP&bt", "len_BP")
+colnames(train_data)[c(263,264,265,266,267,268,269)] <- c("Mon_bt", "Tue_bt", "Wed_bt", "Thu_bt", "Fri_bt", "Sat_bt", "Sun_bt")
+colnames(train_data)[c(270,271,272,273,274,275,276)] <- c("Mon_BP", "Tue_BP", "Wed_BP", "Thu_BP", "Fri_BP", "Sat_BP", "Sun_BP")
+colnames(train_data)[c(277)] <- c("num_parent_posts")
+colnames(train_data)[c(278,279,280)] <- c("min_numComnt_parent", "max_numComnt_parent", "Avg_numComnt_parent")
+colnames(train_data)[c(281)] <- c("num_comnt_next24hr")
+
+#View(train_data)
+
+```
+
+### Number of blog Sources  
+
+There are 433 blog sources in the train set. The following bar graph shows the top 10 (based on the number of comments) blog sources with their total number of comments.  
+
+```{r warning = FALSE, message = FALSE, echo = FALSE}
+blog_source.df <- train_data[,c(1,51,56,270,271,272,273,274,275,276)]
+blog_source.df[,1] <- as.factor(blog_source.df[,1])
+blog_source.df <- blog_source.df %>% group_by(AVG_51) %>% summarise(total_num_comnt = sum(total_num_comnt),total_num_link = sum(total_num_link), Monday_BP = sum(Mon_BP), Tuesday_BP = sum(Tue_BP), Wednesday_BP = sum(Wed_BP), Thursday_BP = sum(Thu_BP), Friday_BP = sum(Fri_BP), Saturday_BP = sum(Sat_BP), Sunday_BP = sum(Sun_BP)) %>% arrange(desc(total_num_comnt)) 
+blog_source.df$total_BP <- rowSums(blog_source.df[,3:9])
+par(mfrow = c(2,1))
+g1 <- ggplot(blog_source.df[1:10,], aes(x = AVG_51, y = total_num_comnt)) +
+  geom_bar(fill = "red", stat = "identity") +
+  geom_text(aes(label = total_num_comnt), vjust = -0.3) + 
+  theme_pubclean() +
+  xlab("Blog Sources with their mean") +
+  ylab("Total Number of Comments")
+g2 <- ggplot(blog_source.df[1:10,], aes(x = AVG_51, y = total_num_link)) +
+  geom_bar(fill = "red", stat = "identity") +
+  geom_text(aes(label = total_num_link), vjust = -0.3) + 
+  theme_pubclean() +
+  xlab("Blog Sources with their mean") +
+  ylab("Total Number of links")
+grid.arrange(g1, g2, nrow = 2, ncol = 1)
+```
+
+From the above bar graphs we can see that the blog source with mean ( 546.6299 ) of total number_comments  has the highest number of comments and links. The number of blog posts in that blog source are `r blog_source.df$total_BP[blog_source.df$AVG_51 == 546.6299]`
+
+```{r warning = FALSE, message = FALSE, echo = FALSE}
+
+```
+
+
+### distribution of the target variable  
+
+Following plot is the density plot of the log transformed target variable.  
+
+```{r warning = FALSE, message = FALSE, echo = FALSE}
+ggplot(train_data,aes(x = log(train_data[,281]))) + geom_density(fill = "blue") + 
+        theme_pubclean() +
+        xlab("Number of comments in the next 24 hrs(log transformation)") +
+        ylab("density")
+```
+
+
+### Number of blog posts in weekday  
+
+```{r warning = FALSE, message = FALSE, echo = FALSE}
+BPday <- colSums(train_data[,270:276])
+BPday <- as.data.frame(BPday)
+BPday.df <- data.frame(rownames(BPday),BPday)
+names(BPday.df) <- c("day", "frequency")
+
+ggplot(BPday.df, aes(x = day, y = frequency)) +
+  geom_bar(fill = "#0073C2FF", stat = "identity") +
+  geom_text(aes(label = frequency), vjust = -0.3) + 
+  theme_pubclean() +
+  xlab("Weekday") +
+  ylab("NO of blog posts published")
+
+```
+
+From the above bar graph we can say that, On saturday and sunday the number of blog posts published were less compared to the remaining weekdays.
+
+
+## Results of Predictive Analysis  
+
+```{r warning = FALSE, message = FALSE, echo = FALSE}
+lm.fit<- lm(train_data[,281] ~ ., train_data[,1:280])
+plot(lm.fit$fitted, lm.fit$residuals, ylab="Residuals", xlab="fitted values", main="residuals vs fitted") 
+abline(0, 0)  
+Y_values <- predict(lm.fit, test_data[,1:280])
+actuals_pred <- data.frame(cbind(actual_values = test_data[,281], pred_values = Y_values))
+rmse <- ( mean( ( actuals_pred$pred_values - test_data[,281] ) ^ 2 ) ) ^0.5
+```
+
+From the above **residuals vs fitted ** plot we can say that the regression fit has heteroscedasticity because the variance of residuals varies with the fitted value.  
+
+```{r warning = FALSE, message = FALSE, echo = FALSE}
+ggplot(actuals_pred, aes(x = actual_values, y = pred_values)) + geom_point() + xlab("Actual values of the target value of the test data") +
+  ylab("Predicted value of the target value")
+```
+
+
+**r^2** value of the fitted data is  `r summary(lm.fit)$r.squared`  
+**adjusted r^2** value of the fitted data is  `r summary(lm.fit)$adj.r.squared`  
+**rmse** of the of test data is `r rmse`  
+**correlation** between actual values vs predicted values is `r cor(actuals_pred$actual_values, actuals_pred$pred_values)` 
+
+```{r warning = FALSE, message = FALSE, echo = FALSE}
+```
+
+# Conclusion  
+From the results of the regression line we can say that the data isn't good for the linear regression may be becuase there are redundant variables are there. And also most people are busy on saturday and sunday that they aren't interested to post blogs on these days.  
+
+
+
+
+
+
+
